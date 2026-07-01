@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Nystagmus Vision Simulator</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at center, rgba(25, 40, 25, 0.9), #030303 70%);
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: 46px;
+    margin: 18px 0 8px;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 24px;
+    color: #eee;
+    max-width: 1100px;
+    margin: 0 auto 18px;
+    line-height: 1.4;
+  }
+
+  .blue {
+    color: #00d9ff;
+    font-weight: bold;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.82);
+    border-top: 2px solid #333;
+    border-bottom: 2px solid #333;
+  }
+
+  .control-box {
+    border: 1px solid #444;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(145deg, rgba(10,10,10,0.96), rgba(25,25,25,0.9));
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.04);
+  }
+
+  .control-box label {
+    display: block;
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 10px;
+  }
+
+  .green { color: #68ff5c; }
+  .yellow { color: #ffdf30; }
+  .cyan { color: #00d9ff; }
+  .purple { color: #ce74ff; }
+  .orange { color: #ff9f1c; }
+  .pink { color: #ff70b8; }
+  .blueText { color: #58a6ff; }
+
+  input[type="range"] {
+    width: 72%;
+    accent-color: #5eff5e;
+    transform: scale(1.15);
+    margin: 10px 8px;
+  }
+
+  input[type="file"], select {
+    font-size: 20px;
+    width: 100%;
+    padding: 10px;
+    background: #090909;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 8px;
+  }
+
+  input[type="checkbox"] {
+    transform: scale(1.6);
+    margin-right: 12px;
+  }
+
+  .value {
+    display: inline-block;
+    min-width: 48px;
+    text-align: center;
+    padding: 7px 10px;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+    font-size: 20px;
+    margin-left: 8px;
+  }
+
+  .hint {
+    font-size: 16px;
+    color: #ddd;
+    margin-top: 8px;
+    line-height: 1.35;
+  }
+
+  #stageWrap {
+    position: relative;
+    width: 100%;
+    padding: 18px 0 8px;
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+    width: min(1550px, 98vw);
+    height: auto;
+    background: transparent;
+  }
+
+  .infoBar {
+    width: min(1220px, 94vw);
+    margin: 10px auto 18px;
+    border: 1px solid #555;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.72);
+    padding: 18px 26px;
+    font-size: 22px;
+    line-height: 1.45;
+  }
+
+  .infoBar strong {
+    color: #7cff54;
+  }
+
+  .footer {
+    text-align: center;
+    color: #ddd;
+    font-size: 18px;
+    padding: 12px 20px 24px;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>Nystagmus Vision Simulator — Both Eyes</h1>
+
+<div class="subtitle">
+  Each eye moves independently and sometimes together.  
+  Brief <span class="blue">“null point”</span> moments reduce blur and movement for a split second.
+</div>
+
+<div class="controls">
+
+  <div class="control-box">
+    <label class="cyan">1. Load Image</label>
+    <input type="file" id="imageUpload" accept="image/*">
+    <div class="hint">JPG, PNG, WebP, etc.</div>
+  </div>
+
+  <div class="control-box">
+    <label class="green">2. Severity <span class="value" id="severityVal">22</span></label>
+    Low <input type="range" id="severity" min="1" max="70" value="22"> High
+    <div class="hint">Higher = larger eye movement</div>
+  </div>
+
+  <div class="control-box">
+    <label class="yellow">3. Speed <span class="value" id="speedVal">120</span></label>
+    Slow <input type="range" id="speed" min="1" max="300" value="120"> Very Fast
+    <div class="hint">Higher = faster movement</div>
+  </div>
+
+  <div class="control-box">
+    <label class="cyan">4. Blur Base <span class="value" id="blurVal">3</span></label>
+    Clear <input type="range" id="blur" min="0" max="14" value="3"> Blurry
+    <div class="hint">Minimum blur when the eyes are moving</div>
+  </div>
+
+  <div class="control-box">
+    <label class="purple">5. Eye Independence <span class="value" id="independenceVal">70</span></label>
+    Together <input type="range" id="independence" min="0" max="100" value="70"> Independent
+    <div class="hint">0 = same movement, 100 = fully independent</div>
+  </div>
+
+  <div class="control-box">
+    <label class="orange">6. Jerkiness <span class="value" id="jerkVal">65</span></label>
+    Smooth <input type="range" id="jerk" min="0" max="100" value="65"> Jerky
+    <div class="hint">Higher = more abrupt movement changes</div>
+  </div>
+
+  <div class="control-box">
+    <label class="cyan">7. Drift <span class="value" id="driftVal">45</span></label>
+    Low <input type="range" id="drift" min="0" max="100" value="45"> High
+    <div class="hint">Slow wandering movement</div>
+  </div>
+
+  <div class="control-box">
+    <label class="pink">8. Movement Pattern</label>
+    <select id="pattern">
+      <option value="horizontal">Horizontal</option>
+      <option value="vertical">Vertical</option>
+      <option value="diagonal">Diagonal</option>
+      <option value="circular">Circular</option>
+      <option value="mixed" selected>Mixed / Irregular</option>
+    </select>
+    <div class="hint">Different motion styles</div>
+  </div>
+
+  <div class="control-box">
+    <label class="green">9. Null Point Frequency <span class="value" id="nullFreqVal">65</span></label>
+    Less <input type="range" id="nullFreq" min="0" max="100" value="65"> More
+    <div class="hint">How often clarity moments happen</div>
+  </div>
+
+  <div class="control-box">
+    <label class="blueText">10. Null Point Strength <span class="value" id="nullStrengthVal">85</span></label>
+    Subtle <input type="range" id="nullStrength" min="0" max="100" value="85"> Very Clear
+    <div class="hint">How clear the split-second moments get</div>
+  </div>
+
+  <div class="control-box">
+    <label class="yellow">
+      <input type="checkbox" id="enableNull" checked>
+      Enable Null Point Effect
+    </label>
+    <div class="hint">Brief split-second moments of reduced blur and calmer motion.</div>
+  </div>
+
+</div>
+
+<div id="stageWrap">
+  <canvas id="canvas" width="1600" height="760"></canvas>
+</div>
+
+<div class="infoBar">
+  <strong>Null point effect:</strong>
+  Sometimes the motion briefly slows and the blur drops, so the view becomes clearer for a split second.
+  This tries to mimic that temporary clarity while still keeping the eyes moving.
+</div>
+
+<div class="footer">
+  Simulation only. Real congenital nystagmus varies from person to person.
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const upload = document.getElementById("imageUpload");
+
+const severitySlider = document.getElementById("severity");
+const speedSlider = document.getElementById("speed");
+const blurSlider = document.getElementById("blur");
+const independenceSlider = document.getElementById("independence");
+const jerkSlider = document.getElementById("jerk");
+const driftSlider = document.getElementById("drift");
+const patternSelect = document.getElementById("pattern");
+const nullFreqSlider = document.getElementById("nullFreq");
+const nullStrengthSlider = document.getElementById("nullStrength");
+const enableNull = document.getElementById("enableNull");
+
+const valueMap = [
+  ["severityVal", severitySlider],
+  ["speedVal", speedSlider],
+  ["blurVal", blurSlider],
+  ["independenceVal", independenceSlider],
+  ["jerkVal", jerkSlider],
+  ["driftVal", driftSlider],
+  ["nullFreqVal", nullFreqSlider],
+  ["nullStrengthVal", nullStrengthSlider]
+];
+
+let img = new Image();
+let imageLoaded = false;
+let time = 0;
+
+function updateLabels() {
+  valueMap.forEach(([id, input]) => {
+    document.getElementById(id).textContent = input.value;
+  });
+}
+
+document.querySelectorAll("input, select").forEach(el => {
+  el.addEventListener("input", updateLabels);
+});
+updateLabels();
+
+upload.addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    img = new Image();
+    img.onload = function() {
+      imageLoaded = true;
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function roundedLensPath(cx, cy, w, h, side) {
+  const left = cx - w / 2;
+  const right = cx + w / 2;
+  const top = cy - h / 2;
+  const bottom = cy + h / 2;
+
+  ctx.beginPath();
+
+  if (side === "left") {
+    ctx.moveTo(left + 80, top + 20);
+    ctx.bezierCurveTo(left + 20, top + 30, left + 8, cy - 55, left + 28, cy + 80);
+    ctx.bezierCurveTo(left + 52, bottom - 15, cx - 70, bottom + 20, right - 65, bottom - 20);
+    ctx.bezierCurveTo(right + 5, bottom - 42, right + 20, cy + 12, right - 5, cy - 55);
+    ctx.bezierCurveTo(right - 28, top - 5, cx - 100, top + 0, left + 80, top + 20);
+  } else {
+    ctx.moveTo(right - 80, top + 20);
+    ctx.bezierCurveTo(right - 20, top + 30, right - 8, cy - 55, right - 28, cy + 80);
+    ctx.bezierCurveTo(right - 52, bottom - 15, cx + 70, bottom + 20, left + 65, bottom - 20);
+    ctx.bezierCurveTo(left - 5, bottom - 42, left - 20, cy + 12, left + 5, cy - 55);
+    ctx.bezierCurveTo(left + 28, top - 5, cx + 100, top + 0, right - 80, top + 20);
+  }
+
+  ctx.closePath();
+}
+
+function drawImageInLens(cx, cy, w, h, side, moveX, moveY, blurAmount, nullAlpha) {
+  ctx.save();
+
+  roundedLensPath(cx, cy, w, h, side);
+  ctx.clip();
+
+  const imageRatio = img.width / img.height;
+  const lensRatio = w / h;
+
+  let drawW;
+  let drawH;
+
+  if (imageRatio > lensRatio) {
+    drawH = h + 150;
+    drawW = drawH * imageRatio;
+  } else {
+    drawW = w + 150;
+    drawH = drawW / imageRatio;
+  }
+
+  const x = cx - drawW / 2 + moveX;
+  const y = cy - drawH / 2 + moveY;
+
+  ctx.filter = `blur(${blurAmount}px)`;
+  ctx.drawImage(img, x, y, drawW, drawH);
+  ctx.filter = "none";
+
+  if (nullAlpha > 0.05) {
+    ctx.save();
+    ctx.globalAlpha = nullAlpha * 0.28;
+    ctx.strokeStyle = "#7cff54";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([6, 7]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = "22px Arial";
+    ctx.fillStyle = "#7cff54";
+    ctx.textAlign = "center";
+    ctx.fillText("NULL POINT", cx, cy - 145);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function movement(t, severity, speed, pattern, jerk, drift, offset) {
+  const base = Math.sin(t * speed + offset);
+  const snap = Math.sin(t * speed * 3.5 + offset * 1.7) * jerk;
+  const micro = Math.sin(t * speed * 10.0 + offset * 2.4) * jerk * 0.28;
+  const slow = Math.sin(t * speed * 0.22 + offset) * drift;
+
+  const m = severity * (base + snap + micro) + slow;
+
+  let x = 0;
+  let y = 0;
+
+  if (pattern === "horizontal") {
+    x = m;
+    y = Math.sin(t * speed * 0.9 + offset) * severity * 0.2;
+  }
+
+  if (pattern === "vertical") {
+    x = Math.sin(t * speed * 0.9 + offset) * severity * 0.2;
+    y = m;
+  }
+
+  if (pattern === "diagonal") {
+    x = m;
+    y = m * 0.55;
+  }
+
+  if (pattern === "circular") {
+    x = Math.cos(t * speed + offset) * severity;
+    y = Math.sin(t * speed + offset) * severity * 0.65;
+  }
+
+  if (pattern === "mixed") {
+    x = m + Math.sin(t * speed * 1.6 + offset) * severity * 0.45;
+    y = Math.cos(t * speed * 1.25 + offset) * severity * 0.42;
+  }
+
+  return { x, y };
+}
+
+function getNullPoint(t, frequency, strength) {
+  if (!enableNull.checked || frequency <= 0 || strength <= 0) {
+    return 0;
+  }
+
+  const freq = 0.45 + frequency * 0.025;
+
+  const pulseA = Math.pow(Math.max(0, Math.sin(t * freq)), 24);
+  const pulseB = Math.pow(Math.max(0, Math.sin(t * freq * 0.63 + 2.2)), 34) * 0.65;
+
+  return Math.min(1, (pulseA + pulseB) * strength);
+}
+
+function drawBackground() {
+  const bg = ctx.createRadialGradient(
+    canvas.width / 2, canvas.height / 2, 100,
+    canvas.width / 2, canvas.height / 2, canvas.width
+  );
+
+  bg.addColorStop(0, "#273321");
+  bg.addColorStop(0.45, "#11190f");
+  bg.addColorStop(1, "#030303");
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawGlassesFrame() {
+  ctx.save();
+
+  ctx.shadowColor = "rgba(0,0,0,0.95)";
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 8;
+
+  ctx.lineWidth = 34;
+  ctx.strokeStyle = "rgba(0,0,0,0.98)";
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+
+  roundedLensPath(445, 390, 620, 390, "left");
+  ctx.stroke();
+
+  roundedLensPath(1155, 390, 620, 390, "right");
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(750, 335);
+  ctx.bezierCurveTo(785, 365, 815, 365, 850, 335);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(142, 345);
+  ctx.lineTo(5, 300);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(1458, 345);
+  ctx.lineTo(1595, 300);
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(255,255,255,0.23)";
+
+  roundedLensPath(445, 390, 620, 390, "left");
+  ctx.stroke();
+
+  roundedLensPath(1155, 390, 620, 390, "right");
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.beginPath();
+  ctx.arc(42, 345, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(1558, 345, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawPlaceholder() {
+  ctx.fillStyle = "white";
+  ctx.font = "42px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Upload an image to begin", canvas.width / 2, canvas.height / 2);
+
+  ctx.font = "26px Arial";
+  ctx.fillStyle = "#ccc";
+  ctx.fillText("The same image will appear inside both lenses.", canvas.width / 2, canvas.height / 2 + 48);
+}
+
+function animate() {
+  drawBackground();
+
+  if (!imageLoaded) {
+    drawGlassesFrame();
+    drawPlaceholder();
+    requestAnimationFrame(animate);
+    return;
+  }
+
+  const severity = Number(severitySlider.value);
+  const speed = Number(speedSlider.value) / 10;
+  const baseBlur = Number(blurSlider.value);
+  const independence = Number(independenceSlider.value) / 100;
+  const togetherness = 1 - independence;
+  const jerk = Number(jerkSlider.value) / 100;
+  const drift = Number(driftSlider.value) / 100 * severity;
+  const pattern = patternSelect.value;
+
+  const nullFreq = Number(nullFreqSlider.value) / 100;
+  const nullStrength = Number(nullStrengthSlider.value) / 100;
+  const nullPoint = getNullPoint(time, nullFreq * 100, nullStrength);
+
+  const motionReduce = 1 - nullPoint * 0.72;
+  const blurReduce = 1 - nullPoint * 0.92;
+
+  const shared = movement(time, severity, speed, pattern, jerk, drift, 0);
+  const leftInd = movement(time, severity, speed * 1.08, pattern, jerk, drift, 2.1);
+  const rightInd = movement(time, severity, speed * 0.94, pattern, jerk, drift, 5.4);
+
+  let leftX = (shared.x * togetherness + leftInd.x * independence) * motionReduce;
+  let leftY = (shared.y * togetherness + leftInd.y * independence) * motionReduce;
+
+  let rightX = (shared.x * togetherness + rightInd.x * independence) * motionReduce;
+  let rightY = (shared.y * togetherness + rightInd.y * independence) * motionReduce;
+
+  const leftMotionBlur = Math.abs(leftX + leftY) * 0.025;
+  const rightMotionBlur = Math.abs(rightX + rightY) * 0.025;
+
+  let leftBlur = Math.max(0, (baseBlur + leftMotionBlur) * blurReduce);
+  let rightBlur = Math.max(0, (baseBlur + rightMotionBlur) * blurReduce);
+
+  drawImageInLens(445, 390, 620, 390, "left", leftX, leftY, leftBlur, nullPoint);
+  drawImageInLens(1155, 390, 620, 390, "right", rightX, rightY, rightBlur, nullPoint);
+
+  drawGlassesFrame();
+
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.font = "24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    "Each lens moves separately, sometimes together, with brief null-point clarity moments.",
+    canvas.width / 2,
+    715
+  );
+
+  time += 0.045;
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+
+</body>
+</html>
