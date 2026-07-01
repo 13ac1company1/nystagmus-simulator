@@ -1,3 +1,6 @@
+Developer Name: Bradley Walker
+License: GNU General Public License v3.0
+
 # Nystagmus Vision Simulator
 
 **Nystagmus Vision Simulator** is an interactive, browser-based educational tool that helps people better understand what living with congenital nystagmus can be like.
